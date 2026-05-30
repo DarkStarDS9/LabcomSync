@@ -52,16 +52,16 @@ public class LabcomClient(HttpClient http, Uri endpoint, ILogger<LabcomClient> l
 
     public async Task<int?> CreateMeasurementAsync(int accountId, int parameterId, string value, long timestamp, string comment)
     {
-        var mutation = $"""
-            mutation {{
+        var mutation = $$"""
+            mutation {
               createMeasurement(
-                value: "{Escape(value)}"
-                account_id: {accountId}
-                parameter_id: {parameterId}
-                timestamp: {timestamp}
-                comment: "{Escape(comment)}"
-              ) {{ id }}
-            }}
+                value: "{{Escape(value)}}"
+                account_id: {{accountId}}
+                parameter_id: {{parameterId}}
+                timestamp: {{timestamp}}
+                comment: "{{Escape(comment)}}"
+              ) { id }
+            }
             """;
         using var doc = await ExecuteAsync(mutation);
         return doc.RootElement.GetProperty("data").GetProperty("createMeasurement").GetProperty("id").GetInt32();
