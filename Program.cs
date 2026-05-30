@@ -40,5 +40,9 @@ while (true)
         cachedAccountId = null;
     }
 
-    await Task.Delay(TimeSpan.FromSeconds(appConfig.IntervalSeconds));
+    var nowSec = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    var nextSec = (nowSec / appConfig.IntervalSeconds + 1) * appConfig.IntervalSeconds;
+    var nextRun = DateTimeOffset.FromUnixTimeSeconds(nextSec);
+    logger.LogInformation("Next run at {NextRun:u}", nextRun);
+    await Task.Delay(nextRun - DateTimeOffset.UtcNow);
 }

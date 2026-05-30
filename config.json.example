@@ -2,7 +2,7 @@
   "labcomGraphqlUrl": "https://backend.labcom.cloud/graphql",
   "prometheusUrl": "http://prometheus:9090",
   "syncComment": "prometheus-sync",
-  "intervalSeconds": 60,
+  "intervalSeconds": 900,
   "lookbackDays": 30,
   "topN": 10,
   "mappings": [
