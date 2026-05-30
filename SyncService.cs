@@ -20,14 +20,14 @@ public class SyncService(LabcomClient labcom, PrometheusClient prometheus, ILogg
     private async Task ProcessMappingAsync(AppConfig config, int accountId, List<Measurement> measurements, MappingConfig mapping)
     {
         var triggers = measurements
-            .Where(m => Matches(m, mapping.TriggerScenarioContains))
+            .Where(m => m.Scenario.Contains(mapping.TriggerScenarioContains, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(m => m.Timestamp)
             .Take(config.TopN)
             .ToList();
 
         if (triggers.Count == 0)
         {
-            logger.LogInformation("[{Mapping}] No trigger measurements found (filter: {Filter})", mapping.Name, mapping.TriggerScenarioContains);
+            logger.LogInformation("[{Mapping}] No trigger measurements found (filter: '{Filter}')", mapping.Name, mapping.TriggerScenarioContains);
             return;
         }
 
@@ -39,7 +39,7 @@ public class SyncService(LabcomClient labcom, PrometheusClient prometheus, ILogg
         string mappingName, List<Measurement> triggers, TargetConfig target)
     {
         var existingTargets = measurements
-            .Where(m => Matches(m, target.ScenarioContains))
+            .Where(m => m.Scenario.Contains(target.ScenarioContains, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         var existingTimestamps = existingTargets.Select(m => m.Timestamp).ToHashSet();
@@ -89,9 +89,4 @@ public class SyncService(LabcomClient labcom, PrometheusClient prometheus, ILogg
             logger.LogInformation("[{Mapping} / {Target}] All {Count} trigger(s) already have target measurements",
                 mappingName, target.ScenarioContains, triggers.Count);
     }
-
-    // Matches against scenario name OR parameter name — whichever contains the filter string.
-    private static bool Matches(Measurement m, string filter) =>
-        m.Scenario.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-        m.Parameter.Contains(filter, StringComparison.OrdinalIgnoreCase);
 }

@@ -8,19 +8,17 @@
   "mappings": [
     {
       "name": "Chlorine measurements",
-      "triggerScenarioContains": "Chlorine",
+      "triggerScenarioContains": "8–CL",
       "targets": [
         {
-          "scenarioContains": "ORP",
+          "scenarioContains": "manually added",
           "prometheusMetric": "bayrol_redox_value",
-          "scenarioId": null,
-          "parameterId": null
+          "parameterId": 161
         },
         {
-          "scenarioContains": "Temperature",
+          "scenarioContains": "manually added",
           "prometheusMetric": "bayrol_temperature_value",
-          "scenarioId": null,
-          "parameterId": null
+          "parameterId": 124
         }
       ]
     }
