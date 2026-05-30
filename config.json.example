@@ -1,0 +1,28 @@
+{
+  "labcomGraphqlUrl": "https://backend.labcom.cloud/graphql",
+  "prometheusUrl": "http://prometheus:9090",
+  "syncComment": "prometheus-sync",
+  "intervalSeconds": 60,
+  "lookbackDays": 30,
+  "topN": 10,
+  "mappings": [
+    {
+      "name": "Chlorine measurements",
+      "triggerScenarioContains": "Chlorine",
+      "targets": [
+        {
+          "scenarioContains": "ORP",
+          "prometheusMetric": "bayrol_redox_value",
+          "scenarioId": null,
+          "parameterId": null
+        },
+        {
+          "scenarioContains": "Temperature",
+          "prometheusMetric": "bayrol_temperature_value",
+          "scenarioId": null,
+          "parameterId": null
+        }
+      ]
+    }
+  ]
+}
