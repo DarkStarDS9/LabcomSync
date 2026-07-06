@@ -22,5 +22,15 @@
         }
       ]
     }
+  ],
+  "grafanaUrl": "http://grafana:3000",
+  "grafanaDashboardUid": "",
+  "annotationStatePath": "/data/annotated_state.json",
+  "exports": [
+    {
+      "name": "DPD1",
+      "parameterId": 321,
+      "unit": "mg/L"
+    }
   ]
 }

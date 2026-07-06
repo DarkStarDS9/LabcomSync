@@ -13,6 +13,14 @@ public record MappingConfig
     public List<TargetConfig> Targets { get; init; } = [];
 }
 
+public record ExportConfig
+{
+    public string Name { get; init; } = "";
+    public int ParameterId { get; init; }
+    public string ScenarioContains { get; init; } = "";
+    public string Unit { get; init; } = "";
+}
+
 public record AppConfig
 {
     public string LabcomGraphqlUrl { get; init; } = "https://backend.labcom.cloud/graphql";
@@ -22,6 +30,10 @@ public record AppConfig
     public int LookbackDays { get; init; } = 30;
     public int TopN { get; init; } = 10;
     public List<MappingConfig> Mappings { get; init; } = [];
+    public string GrafanaUrl { get; init; } = "http://grafana:3000";
+    public string GrafanaDashboardUid { get; init; } = "";
+    public string AnnotationStatePath { get; init; } = "/data/annotated_state.json";
+    public List<ExportConfig> Exports { get; init; } = [];
 }
 
 public record Measurement

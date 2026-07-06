@@ -14,17 +14,25 @@ using var loggerFactory = LoggerFactory.Create(b =>
     b.AddConsole().SetMinimumLevel(LogLevel.Information));
 
 var logger = loggerFactory.CreateLogger("LabcomSync");
-logger.LogInformation("Starting LabcomSync — {Count} mapping(s) configured, interval {Interval}s",
-    appConfig.Mappings.Count, appConfig.IntervalSeconds);
+logger.LogInformation("Starting LabcomSync — {Count} mapping(s), {ExportCount} export(s) configured, interval {Interval}s",
+    appConfig.Mappings.Count, appConfig.Exports.Count, appConfig.IntervalSeconds);
+
+if (appConfig.Exports.Count > 0 && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GRAFANA_TOKEN")))
+    logger.LogWarning("Exports configured but GRAFANA_TOKEN is not set — annotation POSTs will fail");
 
 var labcomHttp = new HttpClient();
 labcomHttp.DefaultRequestHeaders.Add("Authorization", token);
 
 var prometheusHttp = new HttpClient();
+var grafanaHttp = new HttpClient();
 
 var labcomClient = new LabcomClient(labcomHttp, new Uri(appConfig.LabcomGraphqlUrl), loggerFactory.CreateLogger<LabcomClient>());
 var prometheusClient = new PrometheusClient(prometheusHttp, appConfig.PrometheusUrl, loggerFactory.CreateLogger<PrometheusClient>());
 var syncService = new SyncService(labcomClient, prometheusClient, loggerFactory.CreateLogger<SyncService>());
+
+var grafanaToken = Environment.GetEnvironmentVariable("GRAFANA_TOKEN") ?? "";
+var grafanaClient = new GrafanaClient(grafanaHttp, appConfig.GrafanaUrl, grafanaToken, loggerFactory.CreateLogger<GrafanaClient>());
+var exportService = new ExportService(grafanaClient, loggerFactory.CreateLogger<ExportService>());
 
 int? cachedAccountId = null;
 
@@ -32,7 +40,16 @@ while (true)
 {
     try
     {
-        cachedAccountId = await syncService.RunCycleAsync(appConfig, cachedAccountId);
+        var accountId = cachedAccountId ?? await labcomClient.GetAccountIdAsync()
+            ?? throw new InvalidOperationException("No account found in LabCom");
+
+        var from = DateTimeOffset.UtcNow.AddDays(-appConfig.LookbackDays).ToUnixTimeSeconds();
+        var measurements = await labcomClient.GetMeasurementsAsync(accountId, from);
+
+        await syncService.ProcessMappingsAsync(appConfig, accountId, measurements);
+        await exportService.RunAsync(appConfig, measurements);
+
+        cachedAccountId = accountId;
     }
     catch (Exception ex)
     {

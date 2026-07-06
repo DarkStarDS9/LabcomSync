@@ -3,18 +3,10 @@ using System.Globalization;
 
 public class SyncService(LabcomClient labcom, PrometheusClient prometheus, ILogger<SyncService> logger)
 {
-    public async Task<int> RunCycleAsync(AppConfig config, int? cachedAccountId)
+    public async Task ProcessMappingsAsync(AppConfig config, int accountId, List<Measurement> measurements)
     {
-        var accountId = cachedAccountId ?? await labcom.GetAccountIdAsync()
-            ?? throw new InvalidOperationException("No account found in LabCom");
-
-        var from = DateTimeOffset.UtcNow.AddDays(-config.LookbackDays).ToUnixTimeSeconds();
-        var measurements = await labcom.GetMeasurementsAsync(accountId, from);
-
         foreach (var mapping in config.Mappings)
             await ProcessMappingAsync(config, accountId, measurements, mapping);
-
-        return accountId;
     }
 
     private async Task ProcessMappingAsync(AppConfig config, int accountId, List<Measurement> measurements, MappingConfig mapping)

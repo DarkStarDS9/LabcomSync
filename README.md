@@ -2,6 +2,8 @@
 
 Watches your [LabCom Cloud](https://labcom.cloud) account for manual photometer measurements (e.g. DPD1 free chlorine) and back-fills corresponding Prometheus metrics (e.g. ORP/Redox, Temperature from the Bayrol AS5) at the exact same timestamp. Runs as a Docker container.
 
+It can also do the reverse for measurements Prometheus can't represent well: LabCom parameters (e.g. DPD1) are sparse, manual readings — holding them as a Prometheus gauge produces a flat-then-jump staircase, not a real trend. Instead, LabcomSync can push each new LabCom measurement as a Grafana annotation (a point-in-time marker with a tooltip) onto a dashboard of your choice. See "Exports" below.
+
 ## How it works
 
 1. On startup, runs an immediate sync cycle so any existing gaps are filled right away.
@@ -25,6 +27,7 @@ A single trigger scenario can fan out to multiple targets — e.g. every Chlorin
 
 ```
 LABCOM_TOKEN=your_token_here
+GRAFANA_TOKEN=your_grafana_service_account_token_here   # only needed if using Exports
 ```
 
 ### Non-secret — `labcom-sync/config.json` (mounted into container)
@@ -67,6 +70,24 @@ Targets also match by `scenarioContains`. Measurements written by this service g
 
 Known `parameterId` values: `161` = Redox (ORP), `124` = Temperature.
 
+### Exports (LabCom → Grafana annotations)
+
+Any LabCom parameter can be exported as a Grafana annotation instead of (or in addition to) the sync direction above — useful for parameters like DPD1 that only make sense as sparse ground-truth markers, not a held-value gauge.
+
+```json
+"grafanaUrl": "http://grafana:3000",
+"grafanaDashboardUid": "gu8IP2UNk",
+"annotationStatePath": "/data/annotated_state.json",
+"exports": [
+  { "name": "DPD1", "parameterId": 321, "unit": "mg/L" }
+]
+```
+
+- `grafanaDashboardUid`: the dashboard to attach annotations to (open the dashboard in Grafana, the UID is in the URL: `/d/<uid>/...`). Required if `exports` is non-empty.
+- Each export entry matches LabCom measurements by `parameterId` (optionally narrowed further with `scenarioContains`, same matching as targets above) and posts one annotation per new measurement, tagged with the lowercased `name`.
+- `annotationStatePath` persists the last-annotated timestamp per export so restarts don't re-post the same annotation — make sure it's on a mounted volume.
+- Needs a Grafana service account token with annotation-write permission (`GRAFANA_TOKEN` env var) — a separate token from any read-only rendering token you may already have, since this one needs write access.
+
 ## Deployment
 
 Add to `docker-compose.yml` (already done in the bayrolconnect project):
@@ -77,11 +98,15 @@ Add to `docker-compose.yml` (already done in the bayrolconnect project):
     restart: unless-stopped
     volumes:
       - ./labcom-sync/config.json:/config/config.json:ro
+      - ./labcom-sync/data:/data
     environment:
       - LABCOM_TOKEN=${LABCOM_TOKEN}
+      - GRAFANA_TOKEN=${GRAFANA_TOKEN}
     depends_on:
       - prometheus
 ```
+
+The `/data` volume is only needed if you use `exports` (it holds `annotationStatePath`).
 
 Then:
 
